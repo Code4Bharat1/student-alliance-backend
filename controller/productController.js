@@ -66,7 +66,8 @@ const deleteProduct = async (req, res) => {
         const product = await Product.findById(req.params.id);
         if (!product) return res.status(404).json({ error: "Product not found" });
 
-        const imageUrl = product.image;
+        console.log(Product.image);
+        const imageUrl = Product.image;
         const url = new URL(imageUrl);
         const segments = url.pathname.split('/');
         const fileName = segments.pop();
