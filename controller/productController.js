@@ -1,26 +1,70 @@
-const Product = require('../models/Product');
+const Product = require("../models/Product");
 
-// Add a new product
-exports.addProduct = async (req, res) => {
+const createProduct = async (req, res) => {
     try {
-        const { name, description, price } = req.body;
-        const image = req.file ? req.file.path : null;
+        const { name, price, description, image } = req.body;
 
-        const product = new Product({ name, description, price, image });
+        if (!name || !price || !image) {
+            return res.status(400).json({ message: "Name, price, and image are required" });
+        }
+
+        const product = new Product({
+            name,
+            price,
+            description,
+            image,
+        });
+
         await product.save();
-
-        res.status(201).json({ message: 'Product added successfully!', product });
-    } catch (error) {
-        res.status(500).json({ message: 'Error adding product', error });
+        res.status(201).json(product);
+    } catch (err) {
+        res.status(500).json({ message: "Error saving product", error: err.message });
     }
 };
 
-// Get all products
-exports.getProducts = async (req, res) => {
+const getProducts = async (req, res) => {
     try {
-        const products = await Product.find();
-        res.status(200).json(products);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching products', error });
+        const products = await Product.find().sort({ createdAt: -1 });
+        res.json(products);
+    } catch (err) {
+        res.status(500).json({ message: "Error retrieving products", error: err.message });
     }
+};
+
+const updateProduct = async (req, res) => {
+    try {
+        const { name, price, description } = req.body;
+
+        const product = await Product.findById(req.params.id);
+        if (!product) return res.status(404).json({ message: "Product not found" });
+
+        product.name = name;
+        product.price = price;
+        product.description = description;
+        if (req.file) product.image = req.file.path;
+
+        await product.save();
+        res.json(product);
+    } catch (err) {
+        res.status(500).json({ message: "Error updating product", error: err.message });
+    }
+};
+
+const deleteProduct = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+        if (!product) return res.status(404).json({ message: "Product not found" });
+
+        await product.deleteOne();
+        res.json({ message: "Product deleted" });
+    } catch (err) {
+        res.status(500).json({ message: "Error deleting product", error: err.message });
+    }
+};
+
+module.exports = {
+    createProduct,
+    getProducts,
+    updateProduct,
+    deleteProduct,
 };
