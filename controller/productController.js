@@ -19,11 +19,6 @@ const createProduct = async (req, res) => {
             additionalImages
         } = req.body;
 
-        console.log(req.body);
-
-        // if (!name || !price || !image || !imagePublicId || !category) {
-        //     return res.status(400).json({ message: "Name, price, and image are required" });
-        // }
 
         const product = new Product({
             name,
@@ -123,7 +118,6 @@ const deleteProduct = async (req, res) => {
                 const folder = segments.slice(segments.indexOf("upload") + 1).join('/');
                 const publicId = `${folder}/${fileName.split('.')[0]}`;
 
-                console.log("Deleting image from Cloudinary with public ID:", publicId);
                 await cloudinary.uploader.destroy(publicId);
             } catch (cloudErr) {
                 console.warn("Cloudinary image delete failed:", cloudErr.message);
