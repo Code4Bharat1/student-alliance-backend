@@ -4,11 +4,26 @@ const cloudinary = require("../utils/cloudinary.js");
 
 const createProduct = async (req, res) => {
     try {
-        const { name, price, description, image, imagePublicId } = req.body;
+        const {
+            name,
+            price,
+            description,
+            image,
+            imagePublicId,
+            category,
+            rating,
+            quantity,
+            discount,
+            stocks,
+            features,
+            additionalImages
+        } = req.body;
 
-        if (!name || !price || !image || !imagePublicId) {
-            return res.status(400).json({ message: "Name, price, and image are required" });
-        }
+        console.log(req.body);
+
+        // if (!name || !price || !image || !imagePublicId || !category) {
+        //     return res.status(400).json({ message: "Name, price, and image are required" });
+        // }
 
         const product = new Product({
             name,
@@ -16,6 +31,13 @@ const createProduct = async (req, res) => {
             description,
             image,
             imagePublicId,
+            category,
+            rating,
+            quantity,
+            discount,
+            stocks,
+            features,
+            additionalImages
         });
 
         await product.save();
@@ -45,7 +67,20 @@ const getProducts = async (req, res) => {
 
 const updateProduct = async (req, res) => {
     try {
-        const { name, price, description, image, imagePublicId } = req.body;
+        const {
+            name,
+            price,
+            description,
+            image,
+            imagePublicId,
+            category,
+            rating,
+            quantity,
+            discount,
+            stocks,
+            features,
+            additionalImages
+        } = req.body;
 
         const product = await Product.findById(req.params.id);
         if (!product) return res.status(404).json({ message: "Product not found" });
@@ -55,16 +90,23 @@ const updateProduct = async (req, res) => {
         if (description !== undefined) product.description = description;
         if (image !== undefined) product.image = image;
         if (imagePublicId !== undefined) product.imagePublicId = imagePublicId;
+        if (category !== undefined) product.category = category;
+        if (rating !== undefined) product.rating = rating;
+        if (quantity !== undefined) product.quantity = quantity;
+        if (discount !== undefined) product.discount = discount;
+        if (stocks !== undefined) product.stocks = stocks;
+        if (features !== undefined) product.features = features;
+        if (additionalImages !== undefined) product.additionalImages = additionalImages;
 
         await product.save();
-        
+
         res.json(product);
     } catch (err) {
         console.error("Update error:", err.message);
         res.status(500).json({ message: "Error updating product", error: err.message });
     }
 };
-  
+
 
 const deleteProduct = async (req, res) => {
     try {
