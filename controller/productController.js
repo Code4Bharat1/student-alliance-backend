@@ -45,22 +45,26 @@ const getProducts = async (req, res) => {
 
 const updateProduct = async (req, res) => {
     try {
-        const { name, price, description } = req.body;
+        const { name, price, description, image, imagePublicId } = req.body;
 
         const product = await Product.findById(req.params.id);
         if (!product) return res.status(404).json({ message: "Product not found" });
 
-        product.name = name;
-        product.price = price;
-        product.description = description;
-        if (req.file) product.image = req.file.path;
+        if (name !== undefined) product.name = name;
+        if (price !== undefined) product.price = price;
+        if (description !== undefined) product.description = description;
+        if (image !== undefined) product.image = image;
+        if (imagePublicId !== undefined) product.imagePublicId = imagePublicId;
 
         await product.save();
+        
         res.json(product);
     } catch (err) {
+        console.error("Update error:", err.message);
         res.status(500).json({ message: "Error updating product", error: err.message });
     }
 };
+  
 
 const deleteProduct = async (req, res) => {
     try {
