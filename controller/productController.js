@@ -4,9 +4,9 @@ const cloudinary = require("../utils/cloudinary");
 
 const createProduct = async (req, res) => {
     try {
-        const { name, price, description, image } = req.body;
+        const { name, price, description, image, imagePublicId } = req.body;
 
-        if (!name || !price || !image) {
+        if (!name || !price || !image || !imagePublicId) {
             return res.status(400).json({ message: "Name, price, and image are required" });
         }
 
@@ -15,6 +15,7 @@ const createProduct = async (req, res) => {
             price,
             description,
             image,
+            imagePublicId,
         });
 
         await product.save();
@@ -65,6 +66,25 @@ const deleteProduct = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
         if (!product) return res.status(404).json({ error: "Product not found" });
+
+        const imageUrl = product.image;
+
+        if (imageUrl && imageUrl.startsWith("https")) {
+            try {
+                const url = new URL(imageUrl);
+                const segments = url.pathname.split('/');
+                const fileName = segments.pop();
+                const folder = segments.slice(segments.indexOf("upload") + 1).join('/');
+                const publicId = `${folder}/${fileName.split('.')[0]}`;
+
+                console.log("Deleting image from Cloudinary with public ID:", publicId);
+                await cloudinary.uploader.destroy(publicId);
+            } catch (cloudErr) {
+                console.warn("Cloudinary image delete failed:", cloudErr.message);
+            }
+        } else {
+            console.warn("No valid image URL to delete.");
+        }
 
         await Product.findByIdAndDelete(req.params.id);
 
