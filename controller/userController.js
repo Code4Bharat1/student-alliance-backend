@@ -20,7 +20,7 @@ exports.signup = async (req, res) => {
             });
         }
 
-        // Email format validation
+
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return res.status(400).json({
@@ -29,7 +29,7 @@ exports.signup = async (req, res) => {
             });
         }
 
-        // Password length validation
+
         if (password.length < 6) {
             return res.status(400).json({
                 message: "Password must be at least 6 characters long",
@@ -166,5 +166,25 @@ exports.getCurrentUser = async (req, res) => {
             message: "Internal server error. Please try again later.",
             error: "SERVER_ERROR"
         });
+    }
+};
+
+exports.checkEmail = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
+        }
+
+        console.log("Checking email:", email);
+
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            return res.status(404).json({ message: "Email not found" });
+        }
+        // Here you can generate/send OTP if needed
+        res.status(200).json({ message: "Email exists" });
+    } catch (err) {
+        res.status(500).json({ message: "Server error", error: err.message });
     }
 };
