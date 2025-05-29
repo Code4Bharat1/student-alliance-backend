@@ -60,6 +60,31 @@ const getProducts = async (req, res) => {
     }
 };
 
+const getProductsById = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+
+        if(typeof req.params.id !== 'string' || req.params.id.length !== 24) {
+            console.log('Invalid product ID format:', req.params.id);
+        }
+
+        if (!product) {
+            console.log('Product not found for ID:', req.params.id);
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.json(product);
+    } catch (error) {
+        console.log('Error occurred:', error.message);
+
+        if (error.name === 'CastError') {
+            return res.status(400).json({ message: 'Invalid product ID format' });
+        }
+
+        res.status(500).json({ message: 'Server Error', error: error.message });
+    }
+}
+
 const updateProduct = async (req, res) => {
     try {
         const {
@@ -102,7 +127,6 @@ const updateProduct = async (req, res) => {
     }
 };
 
-
 const deleteProduct = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
@@ -135,10 +159,10 @@ const deleteProduct = async (req, res) => {
     }
 };
 
-
 module.exports = {
     createProduct,
     getProducts,
+    getProductsById,
     updateProduct,
     deleteProduct,
 };
