@@ -96,7 +96,6 @@ exports.signup = async (req, res) => {
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        console.log("Login request for email:", email);
 
         // Input validation
         if (!email || !password) {
@@ -126,7 +125,6 @@ exports.login = async (req, res) => {
 
         const token = createToken(user);
 
-        console.log("Login successful for user:", user.email);
 
         res.status(200).json({
             message: "Login successful",
