@@ -85,6 +85,22 @@ const getProductsById = async (req, res) => {
     }
 }
 
+const getProductsByCatagory = async (req, res) => {
+    try {
+        const category = req.params.category; // <-- use params, not query
+        const products = await Product.find({ category });
+
+        if (!products || products.length === 0) {
+            return res.status(404).json({ message: "No products found" });
+        }
+
+        res.status(200).json(products);
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        res.status(500).json({ message: "Server error while fetching products." });
+    }
+};
+
 const updateProduct = async (req, res) => {
     try {
         const {
@@ -165,4 +181,5 @@ module.exports = {
     getProductsById,
     updateProduct,
     deleteProduct,
+    getProductsByCatagory,
 };
