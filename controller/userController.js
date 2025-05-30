@@ -1,12 +1,23 @@
 const User = require("../models/userModel");
 const jwt = require("jsonwebtoken");
-const emailjs = require('emailjs-com');
+const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const OtpModel = require("../models/Otp");
 
 const otpStore = {};
-function generateOTP() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
+
+const generateOTP = () => {
+    return crypto.randomInt(100000, 999999).toString();
+};
+
+setInterval(() => {
+    const now = Date.now();
+    Object.keys(otpStore).forEach(email => {
+        if (otpStore[email].expires < now) {
+            delete otpStore[email];
+        }
+    });
+}, 60 * 60 * 1000);
 
 const createToken = (user) => {
     return jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -201,61 +212,86 @@ exports.sendOtp = async (req, res) => {
         const { email } = req.body;
         if (!email) return res.status(400).json({ message: "Email is required" });
 
-        const user = await User.findOne({ email: email.toLowerCase().trim() });
-        if (!user) return res.status(404).json({ message: "Email not found" });
-
-        const otp = generateOTP();
-        otpStore[email] = { otp, expires: Date.now() + 10 * 60 * 1000 }; // 10 min expiry
-
-        // Send OTP using EmailJS REST API
-        const fetch = require('node-fetch');
-        const service_id = process.env.EMAILJS_SERVICE_ID;
-        const template_id = process.env.EMAILJS_TEMPLATE_ID;
-        const public_key = process.env.EMAILJS_PUBLIC_KEY;
-        const private_key = process.env.EMAILJS_PRIVATE_KEY;
-
-        const payload = {
-            service_id,
-            template_id,
-            user_id: public_key,
-            accessToken: private_key,
-            template_params: {
-                to_email: email,
-                otp: otp
-            }
-        };
-
-        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            return res.status(500).json({ message: "Failed to send OTP email" });
+        const sanitizedEmail = email.toLowerCase().trim();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(sanitizedEmail)) {
+            return res.status(400).json({ message: "Invalid email format" });
         }
 
-        res.status(200).json({ message: "OTP sent successfully" });
+        // Generate a 6-digit OTP
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Save OTP to database with expiry
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins expiry
+        await OtpModel.findOneAndUpdate(
+            { email: sanitizedEmail },
+            { otp: otpCode, expiresAt },
+            { upsert: true, new: true }
+        );
+
+        // Configure nodemailer
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: process.env.SMTP_EMAIL,
+                pass: process.env.SMTP_PASSWORD,
+            },
+        });
+
+        const mailOptions = {
+            from: `"Student Alliance" <${process.env.SMTP_EMAIL}>`,
+            to: sanitizedEmail,
+            subject: "Your OTP Code",
+            html: `<p>Your OTP code is: <b>${otpCode}</b><br/>It will expire in 10 minutes.</p>`,
+        };
+
+        await transporter.sendMail(mailOptions);
+
+        return res.status(200).json({ message: "OTP sent successfully" });
     } catch (err) {
-        res.status(500).json({ message: "Server error", error: err.message });
+        console.error(err);
+        return res.status(500).json({ message: "Error sending OTP", error: err.message });
     }
-};
+  };
 
 exports.verifyOtp = async (req, res) => {
+    const { email, otp } = req.body;
+
+    const otpRecord = await OtpModel.findOne({ email: email.toLowerCase().trim() });
+
+    if (
+        !otpRecord ||
+        otpRecord.otp !== otp ||
+        Date.now() > new Date(otpRecord.expiresAt).getTime()
+    ) {
+        return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // Optionally, delete OTP after verification
+    await OtpModel.deleteOne({ email: email.toLowerCase().trim() });
+
+    res.status(200).json({ message: "OTP verified successfully" });
+};
+
+exports.updatePassword = async (req, res) => {
     try {
-        const { email, otp } = req.body;
-        if (!email || !otp) return res.status(400).json({ message: "Email and OTP are required" });
+        const { email, password } = req.body;
+        if (!email || !password) {
+            return res.status(400).json({ message: "Email and new password are required." });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ message: "Password must be at least 6 characters." });
+        }
 
-        const record = otpStore[email];
-        if (!record) return res.status(400).json({ message: "No OTP sent to this email" });
-        if (Date.now() > record.expires) return res.status(400).json({ message: "OTP expired" });
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            return res.status(404).json({ message: "User not found." });
+        }
 
-        if (record.otp !== otp) return res.status(400).json({ message: "Invalid OTP" });
+        user.password = password;
+        await user.save();
 
-        // Optionally, delete OTP after verification
-        delete otpStore[email];
-
-        res.status(200).json({ message: "OTP verified successfully" });
+        res.status(200).json({ message: "Password updated successfully." });
     } catch (err) {
         res.status(500).json({ message: "Server error", error: err.message });
     }
