@@ -6,6 +6,7 @@ const productRoutes = require("./routes/productRoutes");
 const userRoutes = require("./routes/userRoutes");
 const customerRoutes = require("./routes/customerRoute");
 const cartRoutes = require("./routes/cartRoute");
+const orderRoutes = require("./routes/orderRoutes");
 
 dotenv.config();
 
@@ -18,7 +19,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/products", productRoutes);
 app.use("/api/auth",userRoutes);
 app.use("/api/customers", customerRoutes);
-app.use("/api/cart", cartRoutes);
+app.use("/api/cart", cartRoutes); 
+app.use("/api/orders", orderRoutes);
 
 connectDB().then(() => {
     const PORT = process.env.PORT || 5000;

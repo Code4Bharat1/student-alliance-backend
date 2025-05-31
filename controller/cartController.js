@@ -10,7 +10,6 @@ exports.addToCart = async (req, res) => {
       return res.status(400).json({ message: "Product not available or insufficient stock" });
     }
 
-    // Decrease product stock and increase quantity sold
     product.stocks -= quantity;
     product.quantity += quantity;
     await product.save();
