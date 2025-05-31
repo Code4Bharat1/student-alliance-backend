@@ -20,6 +20,18 @@ exports.getCustomers = async (req, res) => {
   }
 };
 
+exports.getCustomerByEmail = async (req, res) => {
+  try {
+    const email = req.params.email || req.query.email;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+    const customer = await Customer.findOne({ email: req.params.email } || req.query.email);
+    if (!customer) return res.status(404).json({ message: "Customer not found" });
+    res.status(200).json(customer);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Get a single customer by ID
 exports.getCustomerById = async (req, res) => {
   try {
@@ -34,11 +46,24 @@ exports.getCustomerById = async (req, res) => {
 // Update a customer
 exports.updateCustomer = async (req, res) => {
   try {
-    const customer = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!customer) return res.status(404).json({ message: "Customer not found" });
-    res.status(200).json(customer);
+    const { id } = req.params;
+    const update = {};
+
+    if (req.body.password) {
+      // Hash the password before saving!
+      const bcrypt = require("bcryptjs");
+      update.password = await bcrypt.hash(req.body.password, 10);
+    }
+
+    // Add other fields if needed
+
+    const customer = await Customer.findByIdAndUpdate(id, update, { new: true });
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found" });
+    }
+    res.status(200).json({ message: "Password updated", customer });
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 

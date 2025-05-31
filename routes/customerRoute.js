@@ -11,6 +11,8 @@ router.get("/", customerController.getCustomers);
 // Read one
 router.get("/:id", customerController.getCustomerById);
 
+router.put("/email/:email", customerController.getCustomerByEmail);
+
 // Update
 router.put("/:id", customerController.updateCustomer);
 
