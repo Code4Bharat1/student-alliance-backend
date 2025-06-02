@@ -213,3 +213,32 @@ exports.updateCustomerPassword = async (req, res) => {
     });
   }
 };
+
+exports.getCustomersPerMonth = async (req, res) => {
+  try {
+    const data = await Customer.aggregate([
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id": 1 } }
+    ]);
+    // Map month numbers to names
+    const monthNames = [
+      "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+    const result = Array.from({ length: 12 }, (_, i) => ({
+      name: monthNames[i + 1],
+      customers: 0
+    }));
+    data.forEach(item => {
+      result[item._id - 1].customers = item.count;
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

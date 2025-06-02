@@ -14,5 +14,6 @@ router.put("/:id", upload.single("profilePhoto"), customerController.updateCusto
 router.delete("/:id", customerController.deleteCustomer);
 router.post("/login", customerController.loginCustomer);
 router.post("/update-password", customerController.updatePassword);
+router.get("/stats/per-month", customerController.getCustomersPerMonth);
 
 module.exports = router;
