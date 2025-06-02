@@ -43,8 +43,8 @@ exports.getAllOrders = async (req, res) => {
 // Get orders for a specific customer
 exports.getOrdersByCustomer = async (req, res) => {
   try {
-    const { customerId } = req.params;
-    const orders = await Order.find({ customer: customerId }).populate("items.product");
+    const orders = await Order.find({ customer: req.params.customerId })
+      .populate("items.product"); // <-- This line populates product details
     res.status(200).json(orders);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -57,6 +57,32 @@ exports.getOrderById = async (req, res) => {
     const order = await Order.findById(req.params.id).populate("customer").populate("items.product");
     if (!order) return res.status(404).json({ message: "Order not found" });
     res.status(200).json(order);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Cancel an order
+exports.cancelOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Find the order
+    const order = await Order.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    // Optionally check if the order can be cancelled (e.g., not delivered)
+    if (order.orderStatus === "Delivered") {
+      return res.status(400).json({ message: "Delivered orders cannot be cancelled." });
+    }
+
+    order.orderStatus = "Cancelled";
+    const updatedOrder = await order.save();
+    res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully.",
+      order: updatedOrder,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

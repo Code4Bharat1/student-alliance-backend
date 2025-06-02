@@ -14,6 +14,11 @@ const orderSchema = new mongoose.Schema(
     discount: { type: Number, default: 0 },
     total: { type: Number, required: true },
     paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "pending" },
+    orderStatus: {
+      type: String,
+      enum: ["Pending", "Processing", "Delivered", "Cancelled"],
+      default: "Pending"
+    },
     orderDate: { type: Date, default: Date.now },
     customerDetails: { type: Object }, // Store address, phone, etc.
   },
