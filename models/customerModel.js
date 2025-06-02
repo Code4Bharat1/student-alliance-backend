@@ -17,6 +17,18 @@ const userSchema = new mongoose.Schema({
         required: [true, "Please provide a password"],
         minlength: 6,
     },
+    phone: {
+        type: String,
+        default: "",
+    },
+    address: {
+        type: String,
+        default: "",
+    },
+    profilePhoto: {
+        type: String, // Can be a URL or base64 string
+        default: "",
+    },
 }, { timestamps: true });
 
 userSchema.pre("save", async function (next) {

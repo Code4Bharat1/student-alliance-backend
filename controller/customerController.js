@@ -1,6 +1,7 @@
 const Customer = require("../models/customerModel");
+const cloudinary = require("../utils/cloudinary");
+const bcrypt = require("bcryptjs");
 
-// Create a new customer
 exports.createCustomer = async (req, res) => {
   try {
     const customer = await Customer.create(req.body);
@@ -10,7 +11,6 @@ exports.createCustomer = async (req, res) => {
   }
 };
 
-// Get all customers
 exports.getCustomers = async (req, res) => {
   try {
     const customers = await Customer.find();
@@ -22,9 +22,9 @@ exports.getCustomers = async (req, res) => {
 
 exports.getCustomerByEmail = async (req, res) => {
   try {
-    const email = req.params.email || req.query.email;
+    const email = req.params.email;
     if (!email) return res.status(400).json({ message: "Email is required" });
-    const customer = await Customer.findOne({ email: req.params.email } || req.query.email);
+    const customer = await Customer.findOne({ email });
     if (!customer) return res.status(404).json({ message: "Customer not found" });
     res.status(200).json(customer);
   } catch (err) {
@@ -32,7 +32,6 @@ exports.getCustomerByEmail = async (req, res) => {
   }
 };
 
-// Get a single customer by ID
 exports.getCustomerById = async (req, res) => {
   try {
     const customer = await Customer.findById(req.params.id);
@@ -43,31 +42,47 @@ exports.getCustomerById = async (req, res) => {
   }
 };
 
-// Update a customer
 exports.updateCustomer = async (req, res) => {
   try {
     const { id } = req.params;
     const update = {};
 
+    // Handle text fields
+    if (req.body.name) update.name = req.body.name;
+    if (req.body.email) update.email = req.body.email;
+    if (req.body.phone) update.phone = req.body.phone;
+    if (req.body.address) update.address = req.body.address;
+
+    // Handle password
     if (req.body.password) {
-      // Hash the password before saving!
-      const bcrypt = require("bcryptjs");
       update.password = await bcrypt.hash(req.body.password, 10);
     }
 
-    // Add other fields if needed
+    if (req.file) {
+      const result = await cloudinary.uploader.upload_stream(
+        { resource_type: "image", folder: "student-alliance/uploads" },
+        async (error, result) => {
+          if (error) throw error;
+          update.profilePhoto = result.secure_url;
+          const customer = await Customer.findByIdAndUpdate(id, update, { new: true });
+          if (!customer) return res.status(404).json({ message: "Customer not found" });
+          return res.status(200).json({ message: "Profile updated", customer });
+        }
+      );
+      require("streamifier").createReadStream(req.file.buffer).pipe(result);
+      return;
+    }
 
     const customer = await Customer.findByIdAndUpdate(id, update, { new: true });
     if (!customer) {
       return res.status(404).json({ message: "Customer not found" });
     }
-    res.status(200).json({ message: "Password updated", customer });
+    res.status(200).json({ message: "Profile updated", customer });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-// Delete a customer
 exports.deleteCustomer = async (req, res) => {
   try {
     const customer = await Customer.findByIdAndDelete(req.params.id);
@@ -78,21 +93,120 @@ exports.deleteCustomer = async (req, res) => {
   }
 };
 
-// Login customer
 exports.loginCustomer = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const customer = await Customer.findOne({ email });
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide email and password"
+      });
+    }
+
+    // Find customer by email
+    const customer = await Customer.findOne({ email: email.toLowerCase().trim() });
     if (!customer) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
     }
-    const isMatch = await customer.matchPassword(password);
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, customer.password);
     if (!isMatch) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password"
+      });
     }
-    // Optionally, generate a JWT token here
-    res.status(200).json({ message: "Login successful", customer });
+
+    // Login successful
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      customer: {
+        _id: customer._id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        address: customer.address,
+        profilePhoto: customer.profilePhoto
+      }
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Login error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error during login",
+      error: err.message
+    });
   }
 };
+
+exports.updatePassword = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and new password are required." });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    user.password = password;
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully." });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+exports.updateCustomerPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password } = req.body;
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+
+    const customer = await Customer.findById(id);
+    if (!customer) {
+      return res.status(404).json({ message: "Customer not found." });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update password and save
+    customer.password = hashedPassword;
+    const updatedCustomer = await customer.save();
+
+    if (!updatedCustomer) {
+      return res.status(400).json({ message: "Failed to update password" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully.",
+    });
+  } catch (err) {
+    console.error("Password update error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error updating password",
+      error: err.message,
+    });
+  }
+};
+
