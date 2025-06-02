@@ -87,3 +87,30 @@ exports.cancelOrder = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.getOrderCountsByCustomer = async (req, res) => {
+  try {
+    const counts = await Order.aggregate([
+      { $group: { _id: "$customer", totalOrders: { $sum: 1 } } }
+    ]);
+    res.json(counts);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getLastOrderDatesByCustomer = async (req, res) => {
+  try {
+    const lastOrders = await Order.aggregate([
+      {
+        $group: {
+          _id: "$customer",
+          lastOrder: { $max: "$updatedAt" }
+        }
+      }
+    ]);
+    res.json(lastOrders);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

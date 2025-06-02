@@ -12,4 +12,8 @@ router.get("/:id", orderController.getOrderById);
 
 router.put("/:id/cancel", orderController.cancelOrder);
 
+router.get("/counts/by-customer", orderController.getOrderCountsByCustomer);
+
+router.get("/last-order/by-customer", orderController.getLastOrderDatesByCustomer);
+
 module.exports = router;
