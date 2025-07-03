@@ -15,6 +15,7 @@
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
     "@emailjs/nodejs": "^5.0.2",
+    "aws-sdk": "^2.1692.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
@@ -23,13 +24,15 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",
-    "multer": "^2.0.0",
+    "multer": "^2.0.1",
+    "multer-s3": "^3.0.1",
     "multer-storage-cloudinary": "^4.0.0",
     "next": "^15.3.3",
     "nodemailer": "^7.0.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "streamifier": "^0.1.1"
+    "streamifier": "^0.1.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
