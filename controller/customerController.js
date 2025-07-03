@@ -1,5 +1,5 @@
 const Customer = require("../models/customerModel");
-const cloudinary = require("../utils/cloudinary");
+const { uploadFileToWasabi } = require("../utils/wasabi.js");
 const bcrypt = require("bcryptjs");
 
 exports.createCustomer = async (req, res) => {
@@ -59,18 +59,14 @@ exports.updateCustomer = async (req, res) => {
     }
 
     if (req.file) {
-      const result = await cloudinary.uploader.upload_stream(
-        { resource_type: "image", folder: "student-alliance/uploads" },
-        async (error, result) => {
-          if (error) throw error;
-          update.profilePhoto = result.secure_url;
-          const customer = await Customer.findByIdAndUpdate(id, update, { new: true });
-          if (!customer) return res.status(404).json({ message: "Customer not found" });
-          return res.status(200).json({ message: "Profile updated", customer });
-        }
-      );
-      require("streamifier").createReadStream(req.file.buffer).pipe(result);
-      return;
+      // Upload to Wasabi instead of Cloudinary
+      const result = await uploadFileToWasabi({
+        buffer: req.file.buffer,
+        originalName: req.file.originalname,
+        mimetype: req.file.mimetype,
+        folder: 'student-alliance/uploads',
+      });
+      update.profilePhoto = result.fileUrl;
     }
 
     const customer = await Customer.findByIdAndUpdate(id, update, { new: true });

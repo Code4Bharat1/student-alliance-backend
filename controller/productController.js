@@ -1,15 +1,24 @@
 const Product = require("../models/Product");
-const cloudinary = require("../utils/cloudinary.js");
+const { uploadFileToWasabi } = require("../utils/wasabi");
 
 
 const createProduct = async (req, res) => {
     try {
+        let imageUrl = req.body.image;
+        // If a file is uploaded, upload to Wasabi
+        if (req.file) {
+            const result = await uploadFileToWasabi({
+                buffer: req.file.buffer,
+                originalName: req.file.originalname,
+                mimetype: req.file.mimetype,
+            });
+            imageUrl = result.fileUrl;
+        }
+
         const {
             name,
             price,
             description,
-            image,
-            imagePublicId,
             category,
             rating,
             quantity,
@@ -19,13 +28,11 @@ const createProduct = async (req, res) => {
             additionalImages
         } = req.body;
 
-
         const product = new Product({
             name,
             price,
             description,
-            image,
-            imagePublicId,
+            image: imageUrl,
             category,
             rating,
             quantity,
@@ -158,7 +165,6 @@ const deleteProduct = async (req, res) => {
                 const folder = segments.slice(segments.indexOf("upload") + 1).join('/');
                 const publicId = `${folder}/${fileName.split('.')[0]}`;
 
-                await cloudinary.uploader.destroy(publicId);
             } catch (cloudErr) {
                 console.warn("Cloudinary image delete failed:", cloudErr.message);
             }
