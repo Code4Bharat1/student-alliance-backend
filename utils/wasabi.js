@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 
 dotenv.config();
 
-const wasabiEndpoint = new AWS.Endpoint(process.env.WASABI_ENDPOINT);
+const wasabiEndpoint = new AWS.Endpoint(process.env.WASABI_ENDPOINT); //wasabi 
 
 const s3 = new AWS.S3({
   endpoint: wasabiEndpoint,
